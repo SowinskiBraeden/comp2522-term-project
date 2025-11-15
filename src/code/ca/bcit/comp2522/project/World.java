@@ -23,10 +23,10 @@ import java.util.stream.Stream;
 public class World
 {
     private static final String SCORE_PATH           = "./data/score.txt";
+    private static final String BASE_PATH            = "./data/facts";
     private static final int    COUNTRY_PARAM        = 0;
     private static final int    CAPITAL_PARAM        = 1;
     private static final int    NUMBER_OF_FACTS      = 3;
-    private static final String BASE_PATH            = "./data/facts";
     private static final int    NUMBER_OF_QUESTIONS  = 10;
     private static final int    QUESTION_NUM_OFFSET  = 1;
     private static final int    QUEST_ASK_CAPITAL    = 0;

@@ -71,29 +71,29 @@ public class Score
                 if (!line.isBlank() && line.contains("Date and Time: "))
                 {
                     final DateTimeFormatter formatter;
-                    final String dateTime;
-                    final Score score;
-                    final String games;
-                    final String correctFirst;
-                    final String correctSecond;
-                    final String incorrect;
+                    final String            dateTime;
+                    final Score             score;
+                    final String            games;
+                    final String            correctFirst;
+                    final String            correctSecond;
+                    final String            incorrect;
 
                     formatter = DateTimeFormatter.ofPattern(DATE_PATTERN);
 
-                    dateTime = line.split(": ")[SPLIT_VALUE];
-                    System.out.println("debug " + dateTime);
-                    games = reader.readLine().split(": ")[SPLIT_VALUE];
-                    correctFirst = reader.readLine().split(": ")[SPLIT_VALUE];
+                    dateTime      = line.split(": ")[SPLIT_VALUE];
+                    games         = reader.readLine().split(": ")[SPLIT_VALUE];
+                    correctFirst  = reader.readLine().split(": ")[SPLIT_VALUE];
                     correctSecond = reader.readLine().split(": ")[SPLIT_VALUE];
-                    incorrect = reader.readLine().split(": ")[SPLIT_VALUE];
+                    incorrect     = reader.readLine().split(": ")[SPLIT_VALUE];
+
                     reader.readLine(); // Skip over score line
 
                     score = new Score(
-                            LocalDateTime.parse(dateTime, formatter),
-                            Integer.parseInt(games),
-                            Integer.parseInt(correctFirst),
-                            Integer.parseInt(correctSecond),
-                            Integer.parseInt(incorrect)
+                        LocalDateTime.parse(dateTime, formatter),
+                        Integer.parseInt(games),
+                        Integer.parseInt(correctFirst),
+                        Integer.parseInt(correctSecond),
+                        Integer.parseInt(incorrect)
                     );
 
                     scores.add(score);
@@ -101,7 +101,8 @@ public class Score
             }
 
             reader.close();
-        } catch (final IOException e)
+        }
+        catch (final IOException e)
         {
             System.err.println("Failed to open score log file.");
         }
@@ -117,8 +118,8 @@ public class Score
     }
 
     public static boolean isHighScore(
-            final Score score,
-            final List<Score> scores
+        final Score score,
+        final List<Score> scores
     ) {
         final Score highScore;
 
