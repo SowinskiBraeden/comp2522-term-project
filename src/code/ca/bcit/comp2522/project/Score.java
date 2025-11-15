@@ -43,7 +43,6 @@ public class Score
 
             writer.write(score.toString());
             writer.newLine();
-            writer.newLine();
 
             writer.close();
         }
@@ -178,8 +177,9 @@ public class Score
         log.append("Incorrect Attempts: ");
         log.append(this.numIncorrectTwoAttempts);
         log.append("\n");
-        log.append("Total Score: ");
+        log.append("Score: ");
         log.append(this.score);
+        log.append(" points\n");
 
         return log.toString();
     }

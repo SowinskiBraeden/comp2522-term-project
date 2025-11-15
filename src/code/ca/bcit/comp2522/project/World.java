@@ -271,7 +271,7 @@ public class World
                 "the previous record was %.2f points per game ",
                 prevHighScore.calculateAverage()
             );
-    
+
             System.out.printf(
                 "on %s at %s.\n",
                 prevHighScore.getDateTimePlayed().split(" ")[SPLIT_DATE],
