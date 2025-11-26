@@ -12,9 +12,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.Button;
 
-import java.util.Random;
-
-public class NumberGame extends Application
+public class NumberGame
+    extends Application
 {
     private static final int  STARTING_NUMBERS_PLACED = 0;
     private static final int  INDEX_OFFSET   = 1;
@@ -35,13 +34,15 @@ public class NumberGame extends Application
     private Label numberLabel;
     private int currentNumber;
     private int[] positions;
+    private RandomNumberGenerator generator;
 
     @Override
     public void start(final Stage stage)
     {
+        this.generator     = new RandomNumberGenerator(MIN_RAND_NUM, MAX_RAND_NUM);
         this.numbersPlaced = STARTING_NUMBERS_PLACED;
-        this.currentNumber = generateRandomNumber();
-        this.positions = new int[GRID_WIDTH * GRID_HEIGHT];
+        this.currentNumber = this.generator.generate();
+        this.positions     = new int[GRID_WIDTH * GRID_HEIGHT];
 
         this.numberLabel = new Label("Next number: " + this.currentNumber + " - Select a slot.");
         this.numberLabel.setFont(FONT);
@@ -49,14 +50,14 @@ public class NumberGame extends Application
         this.numberLabel.setAlignment(Pos.CENTER);
 
         final VBox root;
-        root = new VBox();
-        root.getChildren().add(this.numberLabel);
-
         final GridPane grid;
+        final Scene scene;
+
+        root = new VBox();
         grid = createGrid();
+        root.getChildren().add(this.numberLabel);
         root.getChildren().add(grid);
 
-        final Scene scene;
         scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         stage.setScene(scene);
@@ -93,13 +94,6 @@ public class NumberGame extends Application
         }
 
         return grid;
-    }
-
-    private int generateRandomNumber()
-    {
-        final Random rand;
-        rand = new Random();
-        return rand.nextInt(MAX_RAND_NUM - MIN_RAND_NUM) + MIN_RAND_NUM;
     }
 
     private void triggerFailed()
@@ -181,7 +175,7 @@ public class NumberGame extends Application
             return;
         }
 
-        this.currentNumber = generateRandomNumber();
+        this.currentNumber = this.generator.generate();
 
         final boolean canPlaceNext;
         canPlaceNext = canBePlaced();

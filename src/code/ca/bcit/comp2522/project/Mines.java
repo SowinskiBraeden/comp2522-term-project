@@ -1,9 +1,11 @@
 package ca.bcit.comp2522.project;
 
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
@@ -28,7 +30,6 @@ public class Mines extends Application
     private static final int BUTTON_WIDTH       = 60;
     private static final int BUTTON_HEIGHT      = 60;
     private static final int MENU_BUTTON_WIDTH  = 180;
-    private static final int MENU_BUTTON_HEIGHT = 80;
     private static final int EASY_WIDTH         = 8;
     private static final int EASY_HEIGHT        = 8;
     private static final int HARD_WIDTH         = 36;
@@ -76,6 +77,37 @@ public class Mines extends Application
     private int       width;
     private int       height;
     private int       flags;
+
+    private Label flagLabel;
+    private Label timerLabel;
+    private int   totalMines;
+
+    private int seconds;
+    private Timeline timer;
+    private boolean timerRunning = false;
+    private boolean randomMode = false;
+
+    private void startTimer() {
+        seconds = 0;
+        timerLabel.setText("Time: 0");
+
+        timer = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+                    seconds++;
+                    timerLabel.setText("Time: " + seconds);
+                })
+        );
+        timer.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        timer.play();
+        timerRunning = true;
+    }
+
+    private void stopTimer() {
+        if (timer != null) {
+            timer.stop();
+        }
+        timerRunning = false;
+    }
 
     @Override
     public void start(final Stage stage)
@@ -214,30 +246,55 @@ public class Mines extends Application
         final int height,
         final int mines
     ) {
-        this.flags   = NO_FLAG;
-        this.buttons = new Button[width * height];
-        this.width   = width;
-        this.height  = height;
+        this.flags      = NO_FLAG;
+        this.buttons    = new Button[width * height];
+        this.width      = width;
+        this.height     = height;
+        this.totalMines = mines;
 
         generateField(mines);
 
         final Stage    gameStage;
         final VBox     box;
+        final VBox     topBar;
         final GridPane grid;
+        final Label    modeLabel;
+        final Button   toggleModeBtn;
 
-        gameStage = new Stage();
-        box       = new VBox();
-        grid      = createGrid(width, height);
+        gameStage     = new Stage();
+        box           = new VBox();
+        grid          = createGrid(width, height);
+        modeLabel     = new Label("Random Mode: OFF");
+        toggleModeBtn = new Button("Toggle Random Mode");
+
+        this.flagLabel  = new Label("Flags: 0 / " + totalMines);
+        this.timerLabel = new Label("Time: 0");
+        this.flagLabel.setFont(FONT);
+        this.timerLabel.setFont(FONT);
+
+        toggleModeBtn.setOnAction(e -> {
+            randomMode = !randomMode;
+            modeLabel.setText("Random Mode: " + (randomMode ? "ON" : "OFF"));
+        });
+
+
+        topBar = new VBox(5, flagLabel, timerLabel);
+
+        topBar.setAlignment(Pos.CENTER);
+        box.getChildren().add(0, topBar);
 
         box.getChildren().add(grid);
         box.setAlignment(Pos.CENTER);
+        grid.setAlignment(Pos.CENTER);
 
         final Scene scene;
         scene = new Scene(box, WINDOW_WIDTH, WINDOW_HEIGHT);
+        root.getChildren().addAll(title, smallBtn, largeBtn, modeLabel, toggleModeBtn);
 
         gameStage.setScene(scene);
         gameStage.setTitle("Random Mines " + width + "x" + height);
         gameStage.show();
+        startTimer();
     }
 
     private void flag(final int index)
@@ -253,7 +310,49 @@ public class Mines extends Application
 
         this.flags = this.flagged[index] == FLAG ?
                      this.flags + FLAG :
-                     this.flags - FLAG;
+                     this.flagged[index] == FLAG_QUESTION ?
+                     this.flags - FLAG :
+                     this.flags;
+
+         this.flagLabel.setText("Flags: " + flags + " / " + totalMines);
+    }
+
+    private void checkWin()
+    {
+        int numRevealed;
+        numRevealed = NO_MINE;
+
+        for (int i = 0; i < this.field.length; i++)
+        {
+            if (this.revealed[i])
+            {
+                numRevealed++;
+            }
+            else if (this.field[i] != MINE)
+            {
+                // if a non revealed cell is not a mine, we know its not a win
+                return;
+            }
+            else
+            {
+                // do nothing
+                continue;
+            }
+        }
+
+        if (numRevealed == (this.field.length - totalMines))
+        {
+            // WIN CONDITION
+            stopTimer();
+
+            final Alert win;
+            win = new Alert(Alert.AlertType.INFORMATION);
+            win.setHeaderText("You Win!");
+            win.setContentText("You successfully cleared all safe squares!");
+            win.showAndWait();
+
+            ((Stage) buttons[0].getScene().getWindow()).close();
+        }
     }
 
     private GridPane createGrid(
@@ -285,7 +384,26 @@ public class Mines extends Application
                 button.setOnMouseClicked(e -> {
                     if (e.getButton() == MouseButton.PRIMARY)
                     {
-                        reveal(index);
+                        final boolean lossed;
+                        lossed = reveal(index);
+
+                        if (lossed)
+                        {
+                            final Alert loss;
+                            loss = new Alert(Alert.AlertType.ERROR);
+                            loss.setHeaderText("You lost...");
+                            loss.setContentText("Unfortunately, you dug up a mine and lost your legs. I hear there is a deal on wheelchairs though.");
+                            loss.showAndWait();
+
+                            final Stage gameStage;
+                            gameStage = (Stage) buttons[index].getScene().getWindow();
+                            gameStage.close();
+                            return;
+                        }
+
+                        checkWin();
+
+                        randomizeRemaining();
                     }
                     else if (e.getButton() == MouseButton.SECONDARY)
                     {
@@ -306,11 +424,85 @@ public class Mines extends Application
         return grid;
     }
 
-    private void reveal(final int index)
+    private void randomizeRemaining()
+    {
+        int regenMine;
+
+        regenMine = NO_MINE;
+
+        for (int i = 0; i < this.field.length; i++)
+        {
+            // Ignore correctly flagged mines
+            if (this.field[i] == MINE && this.flagged[i] == FLAG)
+            {
+                continue;
+            }
+
+            if (this.field[i] == MINE)
+            {
+                regenMine++;
+            }
+
+            this.field[i] = NO_MINE;
+        }
+
+        final Random rand;
+        int placed;
+
+        rand = new Random();
+        placed = NO_MINE;
+
+        while (placed < regenMine)
+        {
+            final int index;
+            index = rand.nextInt(width * height);
+
+            if (this.field[index] == NO_MINE && !this.revealed[index])
+            {
+                this.field[index] = MINE;
+                placed++;
+            }
+        }
+
+        for (int i = 0; i < this.field.length; i++)
+        {
+            if (this.field[i] == MINE)
+            {
+                continue;
+            }
+
+            final int[] count = { NO_MINE };
+
+            forEachNeighbor(i, neighborIndex -> {
+                if (this.field[neighborIndex] == MINE)
+                {
+                    count[SELF_OFFSET]++;
+                }
+            });
+
+            this.field[i] = count[SELF_OFFSET];
+        }
+
+        for (int i = 0; i < this.field.length; i++)
+        {
+            if (this.revealed[i])
+            {
+                this.buttons[i].setText(this.field[i] == NO_MINE ? "" : "" + this.field[i]);
+                this.buttons[i].setStyle(BUTTON_THEMES.get(this.field[i]));
+            }
+
+            if (this.revealed[i] && this.field[i] == NO_MINE)
+            {
+                popFieldVoid(i);
+            }
+        }
+    }
+
+    private boolean reveal(final int index)
     {
         if (this.revealed[index])
         {
-            return;
+            return false;
         }
 
         final String buttonText;
@@ -333,6 +525,8 @@ public class Mines extends Application
         {
             popFieldVoid(index);
         }
+
+        return this.field[index] == MINE;
     }
 
     public static void main(final String[] args)
