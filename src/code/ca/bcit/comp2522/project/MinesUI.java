@@ -11,6 +11,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.stage.Window;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -33,8 +35,14 @@ import java.util.Map;
  */
 public class MinesUI
 {
+    private static final int  MENU_FONT_SIZE          = 14;
     private static final int  FONT_SIZE               = 18;
     private static final Font FONT                    = Font.font("Arial", FontWeight.BOLD, FONT_SIZE);
+    private static final Font MENU_FONT               = Font.font("Arial", FontWeight.NORMAL, MENU_FONT_SIZE);
+
+    private static final int MENU_PADDING             = 5;
+    private static final int POPUP_WIDTH              = 500;
+    private static final int POPUP_HEIGHT             = 250;
 
     private static final int WINDOW_WIDTH             = 900;
     private static final int WINDOW_HEIGHT            = 700;
@@ -110,6 +118,43 @@ public class MinesUI
         this.timerRunning = false;
     }
 
+    private void showInfo(final Window window)
+    {
+        final Stage  popup;
+        final VBox   layout;
+        final Label  msgLabel;
+        final Button okButton;
+        final Scene  popupScene;
+
+        popup = new Stage();
+        popup.setTitle("Random Mines - A Minesweeper Game");
+
+        msgLabel = new Label("Random Mode regenerates the field every move. " +
+                             "Any mine that is not correctly flagged will get randomly moved " +
+                             "after each reveal! This may make it easier to start, but riskier " +
+                             "to end. Beware of losing track of mines you haven't flagged.");
+        msgLabel.setFont(MENU_FONT);
+        msgLabel.setAlignment(Pos.CENTER);
+        msgLabel.setWrapText(true);
+        msgLabel.setPadding(new Insets(PADDING));
+
+        okButton = new Button("OK");
+        okButton.setFont(MENU_FONT);
+        okButton.setOnAction(e -> {
+            popup.close();
+        });
+
+        layout = new VBox(PADDING, msgLabel, okButton);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(MENU_PADDING));
+
+        popupScene = new Scene(layout, POPUP_WIDTH, POPUP_HEIGHT);
+        popup.setScene(popupScene);
+        popup.setResizable(false);
+        popup.initOwner(window);
+        popup.show();
+    }
+
     /**
      * showMainMenu displays main menu to choose
      * game mode, and field size.
@@ -122,6 +167,8 @@ public class MinesUI
         final Button hardButton;
         final Label  modeLabel;
         final Button toggleModeButton;
+        final Button modeInfoButton;
+        final HBox   modeButtons;
         final VBox   root;
         final Scene  scene;
 
@@ -136,13 +183,17 @@ public class MinesUI
         hardButton.setPrefWidth(MENU_BUTTON_WIDTH);
         hardButton.setPrefHeight(MENU_BUTTON_HEIGHT);
 
-        modeLabel = new Label("Random Mode: OFF");
+        modeLabel        = new Label("Random Mode: OFF");
         toggleModeButton = new Button("Toggle Random Mode");
+        modeInfoButton   = new Button("?");
+        modeButtons      = new HBox(MENU_PADDING, toggleModeButton, modeInfoButton);
 
         toggleModeButton.setOnAction(e -> {
             this.randomMode = !this.randomMode;
             modeLabel.setText("Random Mode: " + (this.randomMode ? "ON" : "OFF"));
         });
+
+        modeInfoButton.setOnAction(e -> showInfo(primaryStage.getOwner()));
 
         easyButton.setOnAction(e -> startGame(EASY_WIDTH, EASY_HEIGHT, EASY_MINES, primaryStage));
         hardButton.setOnAction(e -> startGame(HARD_WIDTH, HARD_HEIGHT, HARD_MINES, primaryStage));
@@ -150,8 +201,9 @@ public class MinesUI
         root = new VBox(VERTICAL_MARGIN);
         root.setPadding(new Insets(PADDING));
         root.setAlignment(Pos.CENTER);
+        modeButtons.setAlignment(Pos.CENTER);
 
-        root.getChildren().addAll(titleLabel, easyButton, hardButton, modeLabel, toggleModeButton);
+        root.getChildren().addAll(titleLabel, easyButton, hardButton, modeLabel, modeButtons);
 
         scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -230,7 +282,7 @@ public class MinesUI
 
         gameStage = new Stage();
         gameStage.initOwner(ownerStage);
-        gameStage.setTitle("Random Mines " + width + "x" + height);
+        gameStage.setTitle("Random Mines " + width + "x" + height + " - A Minesweeper Game");
         gameStage.setScene(scene);
         gameStage.show();
     }
