@@ -12,6 +12,9 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.control.Button;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * NumberGame is a GUI game with JavaFX
  * where a user has to place randomly generated
@@ -27,7 +30,6 @@ public class NumberGame
     extends Application
 {
     private static final int  STARTING_NUMBERS_PLACED = 0;
-    private static final int  INDEX_OFFSET   = 1;
     private static final int  FONT_SIZE      = 24;
     private static final int  WINDOW_WIDTH   = 700;
     private static final int  WINDOW_HEIGHT  = 600;
@@ -45,6 +47,7 @@ public class NumberGame
     private Label numberLabel;
     private int currentNumber;
     private int[] positions;
+    private List<Button> buttons;
     private RandomNumberGenerator generator;
     private AscendingPlacement placementValidator;
 
@@ -60,6 +63,7 @@ public class NumberGame
         this.numbersPlaced      = STARTING_NUMBERS_PLACED;
         this.currentNumber      = this.generator.generate();
         this.positions          = new int[GRID_WIDTH * GRID_HEIGHT];
+        this.buttons            = new ArrayList<>();
 
         this.numberLabel = new Label("Next number: " + this.currentNumber + " - Select a slot.");
         this.numberLabel.setFont(FONT);
@@ -109,13 +113,79 @@ public class NumberGame
 
                 button.setFont(FONT);
                 button.setPrefSize(BUTTON_WIDTH, BUTTON_HEIGHT);
+                button.setStyle("-fx-background-color: #c2c2c2; -fx-text-fill: black;");
                 button.setOnAction(e -> handlePress(button, index));
 
                 grid.add(button, i, j);
+                buttons.add(button);
             }
         }
 
         return grid;
+    }
+
+    /*
+     * showPopup displays a simple popup window with a message
+     * and a Restart button to begin a new game.
+     * @param title of the popup
+     * @param message to show the user
+     */
+    private void showPopup(final String title, final String message)
+    {
+        final Stage popup;
+        final VBox layout;
+        final Label msgLabel;
+        final Button restartButton;
+        final Scene popupScene;
+
+        popup = new Stage();
+        popup.setTitle(title);
+
+        msgLabel = new Label(message);
+        msgLabel.setFont(FONT);
+        msgLabel.setAlignment(Pos.CENTER);
+
+        restartButton = new Button("Restart");
+        restartButton.setFont(FONT);
+        restartButton.setOnAction(e ->
+        {
+            popup.close();
+            restartGame();
+        });
+
+        layout = new VBox(20, msgLabel, restartButton);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(20));
+
+        popupScene = new Scene(layout, 400, 200);
+        popup.setScene(popupScene);
+        popup.setResizable(false);
+        popup.initOwner(numberLabel.getScene().getWindow());
+        popup.show();
+    }
+
+    /*
+     * restartGame resets the entire game state by
+     * reloading the JavaFX scene.
+     */
+    private void restartGame()
+    {
+        final Stage stage;
+        stage = (Stage) this.numberLabel.getScene().getWindow();
+        start(stage);
+    }
+
+    /*
+     * disableAllButtons disables every button in the grid
+     * after the user loses.
+     */
+    private void disableAllButtons()
+    {
+        this.buttons.forEach(button -> {
+            button.setMouseTransparent(true);
+            button.setFocusTraversable(false);
+            button.setStyle("-fx-background-color: #f78f8f; -fx-text-fill: black;");
+        });
     }
 
     /*
@@ -126,7 +196,21 @@ public class NumberGame
     private void triggerFailed(final String message)
     {
         this.numberLabel.setText("Next number: " + this.currentNumber + " - " + message);
+        disableAllButtons();
+        showPopup("You Lost!", message);
     }
+
+    /*
+     * triggerWin handles stopping the game
+     * when won, all numbers placed
+     */
+    private void triggerWin()
+    {
+        this.numberLabel.setText("All numbers placed!");
+        disableAllButtons();
+        showPopup("You Won!", "Congratulations! You placed all numbers correctly.");
+    }
+
 
     /*
      * handlePress of button to place number
@@ -137,7 +221,9 @@ public class NumberGame
     private void handlePress(final Button button, final int index)
     {
         button.setText("" + this.currentNumber);
-        button.setDisable(true);
+        button.setMouseTransparent(true);
+        button.setFocusTraversable(false);
+        button.setStyle("-fx-background-color: #95f595; -fx-text-fill: black;");
         this.numbersPlaced++;
 
         this.positions[index] = this.currentNumber;
@@ -158,7 +244,7 @@ public class NumberGame
 
         if (this.numbersPlaced >= TOTAL_NUMBERS)
         {
-            this.numberLabel.setText("All numbers placed!");
+            triggerWin();
             return;
         }
 
