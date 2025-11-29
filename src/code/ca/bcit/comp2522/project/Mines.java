@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.function.Consumer;
@@ -53,8 +54,6 @@ public class Mines extends GameBoard
     private boolean[] revealed;
     private int[]     flagged;
 
-    private int bestScoreSeconds;
-
     /**
      * Mines constructor generates minefield board
      * with a given width, height and number of mines.
@@ -72,9 +71,7 @@ public class Mines extends GameBoard
         super(width, height);
         this.totalMines = mines;
         this.randomMode = randomMode;
-        this.bestScoreSeconds = INITIAL_BEST_SCORE;
         reset();
-        loadBestScore();
     }
 
     /**
@@ -120,7 +117,7 @@ public class Mines extends GameBoard
         placedMines = NO_MINE;
         totalCells  = this.width * this.height;
 
-        while (placedMines < totalMines)
+        while (placedMines < this.totalMines)
         {
             final int index;
 
@@ -431,86 +428,5 @@ public class Mines extends GameBoard
             }
         }
 
-    }
-
-    /**
-     * saveScore to file, then store seconds if
-     * less than last score
-     * @param seconds of game time
-     */
-    public void saveScore(final int seconds)
-    {
-        try
-        {
-            final BufferedWriter writer;
-
-            writer = new BufferedWriter(new FileWriter(SCORE_FILE_NAME));
-
-            writer.write(Integer.toString(seconds));
-            writer.newLine();
-        }
-        catch (final IOException e)
-        {
-            // ignore failure
-        }
-
-        if (seconds < this.bestScoreSeconds)
-        {
-            this.bestScoreSeconds = seconds;
-        }
-    }
-
-    /**
-     * loadBestScore from score file, gets
-     * the best score (the least number of
-     * seconds) from the score file.
-     */
-    private void loadBestScore()
-    {
-        final File scoreFile;
-
-        scoreFile = new File(SCORE_FILE_NAME);
-
-        if (!scoreFile.exists())
-        {
-            return;
-        }
-
-        int best;
-        best = INITIAL_BEST_SCORE;
-
-        try
-        {
-            final Scanner scanner;
-            scanner = new Scanner(new BufferedReader(new FileReader(scoreFile)));
-
-            while (scanner.hasNextInt())
-            {
-                final int candidate;
-
-                candidate = scanner.nextInt();
-
-                if (candidate < best)
-                {
-                    best = candidate;
-                }
-            }
-        }
-        catch (final IOException e)
-        {
-            // ignore failure
-        }
-
-        this.bestScoreSeconds = best;
-    }
-
-    /**
-     * getBestScoreSeconds returns the best
-     * score in seconds
-     * @return best score in seconds
-     */
-    public int getBestScoreSeconds()
-    {
-        return this.bestScoreSeconds;
     }
 }

@@ -9,7 +9,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -20,6 +19,7 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -83,6 +83,7 @@ public class MinesUI
     private static final int ZERO_KEY                 = 0;
 
     private static final String TITLE_TEXT            = "Random Mines - A Minesweeper Game";
+    private static final String SCORE_FILE            = "./data/minesweeper-score.txt";
 
     private static final Map<Integer, String> BUTTON_THEMES;
 
@@ -106,9 +107,9 @@ public class MinesUI
 
     private Mines game;
 
+    private Stage gameStage;
     private Label flagLabel;
     private Label timerLabel;
-    private Label bestLabel;
 
     private boolean randomMode;
     private int     flagsPlaced;
@@ -279,11 +280,11 @@ public class MinesUI
         final int   windowWidth,
         final int   windowHeight
     ) {
-        final Stage    gameStage;
-        final VBox     root;
-        final VBox     topBar;
-        final GridPane grid;
-        final Scene    scene;
+        final VBox       root;
+        final VBox       topBar;
+        final GridPane   grid;
+        final Scene      scene;
+        final Label      bestLabel;
 
         this.flagsPlaced = STARTING_FLAGS;
         this.seconds     = STARTING_SECONDS;
@@ -296,27 +297,30 @@ public class MinesUI
         this.flagLabel  = new Label("Flags: " + this.flagsPlaced + " / " + this.game.getTotalMines());
         this.timerLabel = new Label("Time: " + this.seconds);
 
-        final int bestScore;
-        bestScore = this.game.getBestScoreSeconds();
+        final MinesScore bestScore;
+        final String     difficulty;
 
-        if (bestScore == Integer.MAX_VALUE)
-        {
-            this.bestLabel = new Label("Best: -");
-        }
-        else
-        {
-            this.bestLabel = new Label("Best: " + bestScore + "s");
-        }
+        difficulty = mines == EASY_MINES   ? MinesScore.DIFFICULTY_EASY :
+                     mines == MEDIUM_MINES ? MinesScore.DIFFICULTY_MEDIUM :
+                                             MinesScore.DIFFICULTY_HARD;
+
+        bestScore = MinesScore.getHighScore(
+            MinesScore.readScoresFromFile(SCORE_FILE),
+            difficulty,
+            this.randomMode
+        );
+
+        bestLabel = getBestLabel(bestScore);
 
         this.flagLabel.setFont(FONT);
         this.timerLabel.setFont(FONT);
-        this.bestLabel.setFont(FONT);
+        bestLabel.setFont(FONT);
 
         topBar = new VBox(
             TOPBAR_SPACING,
             this.flagLabel,
             this.timerLabel,
-            this.bestLabel
+                bestLabel
         );
         topBar.setAlignment(Pos.CENTER);
 
@@ -329,14 +333,48 @@ public class MinesUI
 
         scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        gameStage = new Stage();
-        gameStage.setResizable(true);
-        gameStage.setMinWidth(windowWidth);
-        gameStage.setMinHeight(windowHeight);
-        gameStage.initOwner(ownerStage);
-        gameStage.setTitle("Random Mines " + width + "x" + height + " - A Minesweeper Game");
-        gameStage.setScene(scene);
-        gameStage.show();
+        this.gameStage = new Stage();
+        this.gameStage.setResizable(true);
+        this.gameStage.setMinWidth(windowWidth);
+        this.gameStage.setMinHeight(windowHeight);
+        this.gameStage.initOwner(ownerStage);
+        this.gameStage.setTitle("Random Mines " + width + "x" + height + " - A Minesweeper Game");
+        this.gameStage.setScene(scene);
+        this.gameStage.show();
+    }
+
+    /**
+     * getBestLabel generates the label with
+     * best score from score file
+     * @param bestScore to create label from
+     * @return Label of best score
+     */
+    private static Label getBestLabel(final MinesScore bestScore)
+    {
+        final Label bestLabel;
+        if (bestScore == null)
+        {
+            bestLabel = new Label("Best: -");
+        }
+        else
+        {
+            final StringBuilder best;
+
+            best = new StringBuilder();
+
+            best.append("Best: ");
+            best.append(bestScore.getSeconds());
+            best.append("s Difficulty: ");
+            best.append(bestScore.getDifficulty());
+            best.append(" Random Mode: ");
+            best.append(bestScore.getRandomMode());
+            best.append(" Date: ");
+            best.append(bestScore.getDateTimePlayed());
+
+            bestLabel = new Label(best.toString());
+        }
+
+        return bestLabel;
     }
 
     /**
@@ -583,19 +621,55 @@ public class MinesUI
      */
     private void handleWin()
     {
-        final Alert winAlert;
+        final Alert      winAlert;
+        final MinesScore score;
+        final String     difficulty;
+        final int        mines;
 
         stopTimer();
-        this.game.saveScore(this.seconds);
-        this.bestLabel.setText("Best: " + this.game.getBestScoreSeconds() + "s");
+
+        mines = this.game.getTotalMines();
+
+        difficulty = mines == EASY_MINES   ? MinesScore.DIFFICULTY_EASY :
+                     mines == MEDIUM_MINES ? MinesScore.DIFFICULTY_MEDIUM :
+                                             MinesScore.DIFFICULTY_HARD;
+
+        score = new MinesScore(
+            LocalDateTime.now(),
+            this.seconds,
+            difficulty,
+            this.randomMode
+        );
+
+        System.out.println(this.seconds + difficulty + this.randomMode);
 
         showAllMines();
         disableAllButtons();
 
+        final StringBuilder winMessage;
+
+        winMessage = new StringBuilder();
+
+        winMessage.append("You successfully cleared all safe squares!");
+
+        if (MinesScore.isHighScore(score, MinesScore.readScoresFromFile(SCORE_FILE)))
+        {
+            winMessage.append("\nNew High Score! ");
+            winMessage.append("Time: ");
+            winMessage.append(score.getSeconds());
+            winMessage.append("s\nDifficulty: ");
+            winMessage.append(score.getDifficulty());
+            winMessage.append("\nRandom Mode: ");
+            winMessage.append(score.getRandomMode());
+        }
+
+        MinesScore.appendScoreToFile(score, SCORE_FILE);
+
         winAlert = new Alert(Alert.AlertType.INFORMATION);
         winAlert.setHeaderText("You Win!");
-        winAlert.setContentText("You successfully cleared all safe squares!");
+        winAlert.setContentText(winMessage.toString());
         winAlert.showAndWait();
+        this.gameStage.close();
     }
 
     /**
@@ -614,6 +688,7 @@ public class MinesUI
         lossAlert.setHeaderText("You lost...");
         lossAlert.setContentText("You dug up a mine and lost your legs.");
         lossAlert.showAndWait();
+        this.gameStage.close();
     }
 
     /**
