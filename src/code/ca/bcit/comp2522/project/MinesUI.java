@@ -9,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -59,9 +60,19 @@ public class MinesUI
     private static final int EASY_WIDTH               = 8;
     private static final int EASY_HEIGHT              = 8;
     private static final int EASY_MINES               = 10;
+    private static final int MEDIUM_WIDTH             = 16;
+    private static final int MEDIUM_HEIGHT            = 16;
+    private static final int MEDIUM_MINES             = 40;
     private static final int HARD_WIDTH               = 36;
     private static final int HARD_HEIGHT              = 16;
     private static final int HARD_MINES               = 99;
+
+    private static final int EASY_WINDOW_WIDTH        = 600;
+    private static final int EASY_WINDOW_HEIGHT       = 600;
+    private static final int MEDIUM_WINDOW_WIDTH      = 1000;
+    private static final int MEDIUM_WINDOW_HEIGHT     = 1000;
+    private static final int HARD_WINDOW_WIDTH        = 1800;
+    private static final int HARD_WINDOW_HEIGHT       = 1000;
 
     private static final int STARTING_FLAGS           = 0;
     private static final int STARTING_SECONDS         = 0;
@@ -164,6 +175,7 @@ public class MinesUI
     {
         final Label  titleLabel;
         final Button easyButton;
+        final Button mediumButton;
         final Button hardButton;
         final Label  modeLabel;
         final Button toggleModeButton;
@@ -175,11 +187,14 @@ public class MinesUI
         titleLabel = new Label("Select Game Size");
         titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
 
-        easyButton = new Button("8 x 8 (Beginner)");
-        hardButton = new Button("36 x 16 (Expert)");
+        easyButton   = new Button("8 x 8 (Beginner)");
+        mediumButton = new Button("16 x 16 (Intermediate)");
+        hardButton   = new Button("36 x 16 (Expert)");
 
         easyButton.setPrefWidth(MENU_BUTTON_WIDTH);
         easyButton.setPrefHeight(MENU_BUTTON_HEIGHT);
+        mediumButton.setPrefWidth(MENU_BUTTON_WIDTH);
+        mediumButton.setPrefHeight(MENU_BUTTON_HEIGHT);
         hardButton.setPrefWidth(MENU_BUTTON_WIDTH);
         hardButton.setPrefHeight(MENU_BUTTON_HEIGHT);
 
@@ -195,15 +210,47 @@ public class MinesUI
 
         modeInfoButton.setOnAction(e -> showInfo(primaryStage.getOwner()));
 
-        easyButton.setOnAction(e -> startGame(EASY_WIDTH, EASY_HEIGHT, EASY_MINES, primaryStage));
-        hardButton.setOnAction(e -> startGame(HARD_WIDTH, HARD_HEIGHT, HARD_MINES, primaryStage));
+        easyButton.setOnAction(e -> startGame(
+                EASY_WIDTH,
+                EASY_HEIGHT,
+                EASY_MINES,
+                primaryStage,
+                EASY_WINDOW_WIDTH,
+                EASY_WINDOW_HEIGHT
+            )
+        );
+        mediumButton.setOnAction(e -> startGame(
+                MEDIUM_WIDTH,
+                MEDIUM_HEIGHT,
+                MEDIUM_MINES,
+                primaryStage,
+                MEDIUM_WINDOW_WIDTH,
+                MEDIUM_WINDOW_HEIGHT
+            )
+        );
+        hardButton.setOnAction(e -> startGame(
+                HARD_WIDTH,
+                HARD_HEIGHT,
+                HARD_MINES,
+                primaryStage,
+                HARD_WINDOW_WIDTH,
+                HARD_WINDOW_HEIGHT
+            )
+        );
 
         root = new VBox(VERTICAL_MARGIN);
         root.setPadding(new Insets(PADDING));
         root.setAlignment(Pos.CENTER);
         modeButtons.setAlignment(Pos.CENTER);
 
-        root.getChildren().addAll(titleLabel, easyButton, hardButton, modeLabel, modeButtons);
+        root.getChildren().addAll(
+            titleLabel,
+            easyButton,
+            mediumButton,
+            hardButton,
+            modeLabel,
+            modeButtons
+        );
 
         scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -228,7 +275,9 @@ public class MinesUI
         final int   width,
         final int   height,
         final int   mines,
-        final Stage ownerStage
+        final Stage ownerStage,
+        final int   windowWidth,
+        final int   windowHeight
     ) {
         final Stage    gameStage;
         final VBox     root;
@@ -281,6 +330,9 @@ public class MinesUI
         scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         gameStage = new Stage();
+        gameStage.setResizable(true);
+        gameStage.setMinWidth(windowWidth);
+        gameStage.setMinHeight(windowHeight);
         gameStage.initOwner(ownerStage);
         gameStage.setTitle("Random Mines " + width + "x" + height + " - A Minesweeper Game");
         gameStage.setScene(scene);
